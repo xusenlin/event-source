@@ -46,13 +46,13 @@ func (b *Broadcast[T]) CancelSubscribe(id string) {
 }
 
 func (b *Broadcast[T]) PublishMsg(eventType string, data T) {
-	b.mut.Lock()
-	defer b.mut.Unlock()
-
 	e := Event[T]{
 		Type: eventType,
 		Data: data,
 	}
+
+	b.mut.Lock()
+	defer b.mut.Unlock()
 
 	for id, _ := range b.msg {
 		b.msg[id] <- e

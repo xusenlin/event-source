@@ -7,18 +7,32 @@ go get github.com/xusenlin/event-source@v0.0.2-alpha
 ## Usage
 
 ```go
-package event
+package task
 
 import eventSource "github.com/xusenlin/event-source"
 
-type TaskData struct {
-	
+type EventData struct {
+	//...more
 }
-var Task = eventSource.New[*TaskData]()
+
+var eventInstance = eventSource.New[*EventData]()
+
+func PublishEventMsg() {
+	eventInstance.PublishMsg("message", &EventData{})
+}
 
 ```
 
 ```go
+package task
+
+import (
+	"github.com/gin-gonic/gin"
+	"io"
+	"marewood/internal/user"
+	"strconv"
+)
+
 func EventSource(c *gin.Context) {
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
@@ -32,20 +46,16 @@ func EventSource(c *gin.Context) {
 	}
 	strUserId := strconv.Itoa(int(claims.ID))
 
-	event.Task.Subscribe(strUserId)
-	defer event.Task.CancelSubscribe(strUserId)
+	eventInstance.Subscribe(strUserId)
+	defer eventInstance.CancelSubscribe(strUserId)
 
 	c.Stream(func(w io.Writer) bool {
-		if msg, ok := <-event.Task.ReceiveMsg(strUserId); ok {
+		if msg, ok := <-eventInstance.ReceiveMsg(strUserId); ok {
 			c.SSEvent(msg.Type, msg.Data)
 			return true
 		}
 		return false
 	})
 }
-```
 
-publishMs to All User
-```go
-Task.PublishMsg("message",&TaskData{})
 ```
