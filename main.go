@@ -20,6 +20,9 @@ func New[T any]() *Broadcast[T] {
 }
 
 func (b *Broadcast[T]) Subscribe(id string) {
+	if id == "" {
+		return
+	}
 	_, ok := b.msg[id]
 	if ok {
 		return
@@ -30,6 +33,9 @@ func (b *Broadcast[T]) Subscribe(id string) {
 }
 
 func (b *Broadcast[T]) CancelSubscribe(id string) {
+	if id == "" {
+		return
+	}
 	_, ok := b.msg[id]
 	if !ok {
 		return
@@ -45,4 +51,15 @@ func (b *Broadcast[T]) PublishMsg(e Event[T]) {
 	for id, _ := range b.msg {
 		b.msg[id] <- e
 	}
+}
+
+func (b *Broadcast[T]) ReceiveMsg(id string) chan Event[T] {
+	if id == "" {
+		return nil
+	}
+	_, ok := b.msg[id]
+	if !ok {
+		return nil
+	}
+	return b.msg[id]
 }
