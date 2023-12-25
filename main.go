@@ -58,6 +58,26 @@ func (b *Broadcast[T]) PublishMsg(eventType string, data T) {
 		b.msg[id] <- e
 	}
 }
+func (b *Broadcast[T]) PublishMsgExcludeIDs(eventType string, data T, excludedIDs []string) {
+	e := Event[T]{
+		Type: eventType,
+		Data: data,
+	}
+
+	b.mut.Lock()
+	defer b.mut.Unlock()
+
+	excluded := make(map[string]bool)
+	for _, id := range excludedIDs {
+		excluded[id] = true
+	}
+
+	for id := range b.msg {
+		if !excluded[id] {
+			b.msg[id] <- e
+		}
+	}
+}
 
 func (b *Broadcast[T]) ReceiveMsg(id string) chan Event[T] {
 	if id == "" {
