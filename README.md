@@ -2,7 +2,7 @@
 
 ## Install
 ```
-go get github.com/xusenlin/event-source@v0.0.6-alpha
+go get github.com/xusenlin/event-source@v0.0.7-alpha
 ```
 ## Usage
 
@@ -18,10 +18,13 @@ type EventData struct {
 	Msg          string `json:"msg"`
 }
 
-var eventInstance = eventSource.New[*EventData,uint]()
+var eventInstance = eventSource.New[*EventData,uint]() // 默认容量为10
+// or
+var eventInstanceWithCapacity = eventSource.New[*EventData,uint](20) // 设置容量为20
 
 func PublishEventMsg() {
 	eventInstance.PublishMsg("message", &EventData{})
+	eventInstance.PublishMsgToID("message", &EventData{}, 1)
 	eventInstance.PublishMsgExcludeID("message", &EventData{}, 1)
 	eventInstance.PublishMsgExcludeIDs("message", &EventData{}, []uint{1, 2, 3})
 }
@@ -42,6 +45,8 @@ func EventSource(c *gin.Context) {
 	}
 	
 	eventInstance.Subscribe(claims.ID)
+	c.SSEvent("message", "connected")
+	c.Writer.Flush()
 	defer eventInstance.CancelSubscribe(claims.ID)
 	c.Stream(func(w io.Writer) bool {
 		select {

@@ -8,14 +8,37 @@ type Event[T any] struct {
 }
 
 type Broadcast[T any, K comparable] struct {
-	msg map[K]chan Event[T]
-	mut sync.Mutex
+	msg      map[K]chan Event[T]
+	mut      sync.Mutex
+	capacity int
 }
 
-func New[T any, K comparable]() *Broadcast[T, K] {
+func New[T any, K comparable](capacity ...int) *Broadcast[T, K] {
+	c := 10
+	if len(capacity) > 0 {
+		c = capacity[0]
+	}
 	return &Broadcast[T, K]{
-		msg: make(map[K]chan Event[T]),
-		mut: sync.Mutex{},
+		msg:      make(map[K]chan Event[T]),
+		mut:      sync.Mutex{},
+		capacity: c,
+	}
+}
+
+func (b *Broadcast[T, K]) PublishMsgToID(eventType string, data T, id K) {
+	e := Event[T]{
+		Type: eventType,
+		Data: data,
+	}
+
+	b.mut.Lock()
+	defer b.mut.Unlock()
+
+	if ch, ok := b.msg[id]; ok {
+		select {
+		case ch <- e:
+		default:
+		}
 	}
 }
 
@@ -30,7 +53,7 @@ func (b *Broadcast[T, K]) Subscribe(id K) {
 	}
 	b.mut.Lock()
 	defer b.mut.Unlock()
-	b.msg[id] = make(chan Event[T], 5)
+	b.msg[id] = make(chan Event[T], b.capacity)
 }
 
 func (b *Broadcast[T, K]) CancelSubscribe(id K) {
@@ -56,8 +79,11 @@ func (b *Broadcast[T, K]) PublishMsg(eventType string, data T) {
 	b.mut.Lock()
 	defer b.mut.Unlock()
 
-	for id, _ := range b.msg {
-		b.msg[id] <- e
+	for id, ch := range b.msg {
+		select {
+		case ch <- e:
+		default:
+		}
 	}
 }
 func (b *Broadcast[T, K]) PublishMsgExcludeID(eventType string, data T, excludeID K) {
@@ -69,9 +95,12 @@ func (b *Broadcast[T, K]) PublishMsgExcludeID(eventType string, data T, excludeI
 	b.mut.Lock()
 	defer b.mut.Unlock()
 
-	for id := range b.msg {
+	for id, ch := range b.msg {
 		if excludeID != id {
-			b.msg[id] <- e
+			select {
+			case ch <- e:
+			default:
+			}
 		}
 	}
 }
@@ -89,9 +118,12 @@ func (b *Broadcast[T, K]) PublishMsgExcludeIDs(eventType string, data T, exclude
 		excluded[id] = true
 	}
 
-	for id := range b.msg {
+	for id, ch := range b.msg {
 		if !excluded[id] {
-			b.msg[id] <- e
+			select {
+			case ch <- e:
+			default:
+			}
 		}
 	}
 }
