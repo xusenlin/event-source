@@ -79,7 +79,7 @@ func (b *Broadcast[T, K]) PublishMsg(eventType string, data T) {
 	b.mut.Lock()
 	defer b.mut.Unlock()
 
-	for id, ch := range b.msg {
+	for _, ch := range b.msg {
 		select {
 		case ch <- e:
 		default:
