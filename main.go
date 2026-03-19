@@ -47,12 +47,11 @@ func (b *Broadcast[T, K]) Subscribe(id K) {
 	if id == zero {
 		return
 	}
-	_, ok := b.msg[id]
-	if ok {
-		return
-	}
 	b.mut.Lock()
 	defer b.mut.Unlock()
+	if _, ok := b.msg[id]; ok {
+		return
+	}
 	b.msg[id] = make(chan Event[T], b.capacity)
 }
 
@@ -61,12 +60,11 @@ func (b *Broadcast[T, K]) CancelSubscribe(id K) {
 	if id == zero {
 		return
 	}
-	_, ok := b.msg[id]
-	if !ok {
-		return
-	}
 	b.mut.Lock()
 	defer b.mut.Unlock()
+	if _, ok := b.msg[id]; !ok {
+		return
+	}
 	delete(b.msg, id)
 }
 
@@ -133,9 +131,7 @@ func (b *Broadcast[T, K]) ReceiveMsg(id K) chan Event[T] {
 	if id == zero {
 		return nil
 	}
-	_, ok := b.msg[id]
-	if !ok {
-		return nil
-	}
+	b.mut.Lock()
+	defer b.mut.Unlock()
 	return b.msg[id]
 }
