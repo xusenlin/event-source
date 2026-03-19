@@ -2,7 +2,7 @@
 
 ## Install
 ```
-go get github.com/xusenlin/event-source@v0.0.8-alpha
+go get github.com/xusenlin/event-source@v0.0.9-alpha
 ```
 ## Usage
 
